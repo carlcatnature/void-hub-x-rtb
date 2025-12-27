@@ -1,0 +1,532 @@
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/UI-Interface/CustomFIeld/main/RayField.lua'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Void Hub x RTB Kohau Script",
+   LoadingTitle = "Loading Kohau Script...",
+   LoadingSubtitle = "By CJ, Aimbotter & Monkey_kid03",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil,
+      FileName = "Big Hub"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinvitelink",
+      RememberJoins = true
+   },
+   KeySystem = false,
+   KeySettings = {
+      Title = "Kohau Script",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided",
+      FileName = "Key",
+      SaveKey = true,
+      GrabKeyFromSite = false,
+      Key = {"kohausux", "kohausucks"}
+   }
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ESPFolder = Instance.new("Folder", game.CoreGui)
+ESPFolder.Name = "KohauESP"
+
+local currentAdmins = {}
+
+local function createESP(player)
+    local highlight = Instance.new("Highlight")
+    highlight.Name = player.Name
+    highlight.Parent = ESPFolder
+    highlight.Adornee = player.Character
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.FillColor = Color3.fromRGB(255, 255, 0)
+    highlight.OutlineColor = Color3.fromRGB(255, 215, 0)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+end
+
+local function updateESPTransparency(value)
+    for _, highlight in ipairs(ESPFolder:GetChildren()) do
+        if highlight:IsA("Highlight") then
+            highlight.FillTransparency = value
+        end
+    end
+end
+
+local function updateESPOutline(enabled)
+    for _, highlight in ipairs(ESPFolder:GetChildren()) do
+        if highlight:IsA("Highlight") then
+            highlight.OutlineTransparency = enabled and 0 or 1
+        end
+    end
+end
+
+local function updateESPColor(color)
+    for _, highlight in ipairs(ESPFolder:GetChildren()) do
+        if highlight:IsA("Highlight") then
+            highlight.FillColor = color
+            highlight.OutlineColor = color
+        end
+    end
+end
+
+local function serverHop()
+    local TeleportService = game:GetService("TeleportService")
+    local Players = game:GetService("Players")
+    local localPlayer = Players.LocalPlayer
+    
+    local success, result = pcall(function()
+        return TeleportService:GetCurrentServerInstanceId()
+    end)
+    
+    if success then
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, result)
+    else
+        TeleportService:Teleport(game.PlaceId)
+    end
+end
+
+local function updateAdminList()
+    currentAdmins = {}
+    for _, player in ipairs(game.Players:GetPlayers()) do
+        if player.Team and player.Team.Name == "❄️ Executives" then
+            table.insert(currentAdmins, player.Name)
+        end
+    end
+    return currentAdmins
+end
+
+local function createCustomCrosshair()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "KohauCrosshair"
+    screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 20, 0, 20)
+    frame.Position = UDim2.new(0.5, -10, 0.5, -10)
+    frame.BackgroundColor3 = Color3.new(1, 0, 0)
+    frame.BackgroundTransparency = 0.5
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+    
+    getgenv().CrosshairGui = screenGui
+end
+
+local function removeCustomCrosshair()
+    if getgenv().CrosshairGui then
+        getgenv().CrosshairGui:Destroy()
+        getgenv().CrosshairGui = nil
+    end
+end
+
+local function updateCrosshairColor(color)
+    if getgenv().CrosshairGui then
+        for _, child in ipairs(getgenv().CrosshairGui:GetChildren()) do
+            if child:IsA("Frame") then
+                child.BackgroundColor3 = color
+            end
+        end
+    end
+end
+
+local MainTab = Window:CreateTab("Radar Features", 4483362458)
+
+local ESPSection = MainTab:CreateSection("ESP Features", false)
+
+local ESPToggle = MainTab:CreateToggle({
+    Name = "Enable Player ESP",
+    Info = "Shows players through walls",
+    CurrentValue = false,
+    Flag = "ESPEnabled",
+    Callback = function(Value)
+        if Value then
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= Players.LocalPlayer and player.Character then
+                    createESP(player)
+                end
+            end
+            
+            Players.PlayerAdded:Connect(function(player)
+                player.CharacterAdded:Connect(function()
+                    if Rayfield.Flags["ESPEnabled"] then
+                        createESP(player)
+                    end
+                end)
+            end)
+        else
+            for _, highlight in ipairs(ESPFolder:GetChildren()) do
+                if highlight:IsA("Highlight") then
+                    highlight:Destroy()
+                end
+            end
+        end
+    end,
+})
+
+local MovementSection = MainTab:CreateSection("Movement Features", false)
+
+local NoclipToggle = MainTab:CreateToggle({
+    Name = "Noclip",
+    Info = "Walk through walls",
+    CurrentValue = false,
+    Flag = "NoclipEnabled",
+    Callback = function(Value)
+        getgenv().Noclip = Value
+    end,
+})
+
+local ChatSection = MainTab:CreateSection("Chat Features", false)
+
+local SpamMessageInput = MainTab:CreateInput({
+    Name = "Spam Message",
+    Info = "Message to spam in chat",
+    PlaceholderText = "Enter message to spam",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        getgenv().SpamMessageText = Text
+    end,
+})
+
+local SpamToggle = MainTab:CreateToggle({
+    Name = "Toggle Chat Spam",
+    Info = "Spams the chat with your message",
+    CurrentValue = false,
+    Flag = "SpamEnabled",
+    Callback = function(Value)
+        getgenv().SpamEnabled = Value
+        if Value then
+            task.spawn(function()
+                while getgenv().SpamEnabled do
+                    task.wait(2)
+                    local message = getgenv().SpamMessageText or "Kohau Script Active!"
+                    pcall(function()
+                        game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync(message)
+                    end)
+                end
+            end)
+        end
+    end,
+})
+
+local VisualSection = MainTab:CreateSection("Visual Effects", false)
+
+local ColorPicker = MainTab:CreateColorPicker({
+    Name = "ESP Color",
+    Info = "Change ESP highlight color",
+    Color = Color3.fromRGB(255, 255, 0),
+    Flag = "ESPColor",
+    Callback = function(Color)
+        updateESPColor(Color)
+    end
+})
+
+local ESPFillSlider = MainTab:CreateSlider({
+    Name = "ESP Fill Transparency",
+    Info = "Adjust ESP transparency",
+    Range = {0, 10},
+    Increment = 1,
+    Suffix = "%",
+    CurrentValue = 5,
+    Flag = "ESPFillTransparency",
+    Callback = function(Value)
+        updateESPTransparency(Value / 10)
+    end,
+})
+
+local ESPOutlineToggle = MainTab:CreateToggle({
+    Name = "ESP Outline",
+    Info = "Toggle ESP outline visibility",
+    CurrentValue = true,
+    Flag = "ESPOutlineEnabled",
+    Callback = function(Value)
+        updateESPOutline(Value)
+    end,
+})
+
+local UtilityTab = Window:CreateTab("Utilities", 4483362458)
+
+local UtilitySection = UtilityTab:CreateSection("Script Controls", false)
+
+local CloseButton = UtilityTab:CreateButton({
+    Name = "Close Interface",
+    Info = "Closes the Kohau Script interface",
+    Interact = 'Close',
+    Callback = function()
+        Rayfield:Destroy()
+    end,
+})
+
+local IYButton = UtilityTab:CreateButton({
+    Name = "Load Infinite Yield",
+    Info = "Loads Infinite Yield admin commands",
+    Interact = 'Load',
+    Callback = function()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+    end,
+})
+
+local WebsiteSection = UtilityTab:CreateSection("Website Links", false)
+
+local HageyButton = UtilityTab:CreateButton({
+    Name = "Copy Hagey Express Link",
+    Info = "Copies Hagey Express website to clipboard",
+    Interact = 'Copy',
+    Callback = function()
+        setclipboard("https://hageyexpress.xyz/")
+    end,
+})
+
+local RTBButton = UtilityTab:CreateButton({
+    Name = "Copy RTB Website Link", 
+    Info = "Copies RTB Website to clipboard",
+    Interact = 'Copy',
+    Callback = function()
+        setclipboard("https://carljohnson-san.github.io/RTB/")
+    end,
+})
+
+local SecurityTab = Window:CreateTab("Security", 4483362458)
+
+local AntiAdminSection = SecurityTab:CreateSection("Anti-Admin Measures", false)
+
+local ServerHopButton = SecurityTab:CreateButton({
+    Name = "Scan & Server Hop if Admins Detected",
+    Info = "Scans for admins and hops servers if found",
+    Interact = 'Scan',
+    Callback = function()
+        local admins = updateAdminList()
+        if #admins > 0 then
+            serverHop()
+        end
+    end,
+})
+
+local AutoServerHopToggle = SecurityTab:CreateToggle({
+    Name = "Auto Server Hop when Admins Join",
+    Info = "Automatically hops servers when admins join",
+    CurrentValue = false,
+    Flag = "AutoServerHopEnabled",
+    Callback = function(Value)
+        if Value then
+            game.Players.PlayerAdded:Connect(function(player)
+                if player:WaitForChild("Team", 5) and player.Team.Name == "❄️ Executives" then
+                    serverHop()
+                end
+            end)
+            
+            task.spawn(function()
+                while Rayfield.Flags["AutoServerHopEnabled"] do
+                    task.wait(5)
+                    local admins = updateAdminList()
+                    if #admins > 0 then
+                        serverHop()
+                    end
+                end
+            end)
+        end
+    end,
+})
+
+local QuickHopButton = SecurityTab:CreateButton({
+    Name = "Quick Server Hop",
+    Info = "Quickly hop to a different server",
+    Interact = 'Hop',
+    Callback = function()
+        serverHop()
+    end,
+})
+
+local AdminListSection = SecurityTab:CreateSection("Admin Monitoring", false)
+
+local AdminListLabel = SecurityTab:CreateLabel("Current Admin Team Members: None")
+
+local RefreshAdminButton = SecurityTab:CreateButton({
+    Name = "Refresh Admin List",
+    Info = "Updates the admin list display",
+    Interact = 'Refresh',
+    Callback = function()
+        local admins = updateAdminList()
+        if #admins > 0 then
+            AdminListLabel:Set("Admin Team Members: " .. table.concat(admins, ", "))
+        else
+            AdminListLabel:Set("Current Admin Team Members: None")
+        end
+    end,
+})
+
+local FunTab = Window:CreateTab("Fun Features", 4483362458)
+
+local NukeSection = FunTab:CreateSection("Client-Sided Nuking Effects", false)
+
+local NukeButton = FunTab:CreateButton({
+    Name = "💣 Activate Client Nuke",
+    Info = "Creates explosion effects around your character",
+    Interact = 'Activate',
+    Callback = function()
+        local character = Players.LocalPlayer.Character
+        if character then
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                local explosion = Instance.new("Explosion")
+                explosion.Position = rootPart.Position
+                explosion.BlastPressure = 0
+                explosion.BlastRadius = 50
+                explosion.Visible = true
+                explosion.DestroyJointRadiusPercent = 0
+                explosion.Parent = workspace
+            end
+        end
+    end,
+})
+
+local MassiveNukeButton = FunTab:CreateButton({
+    Name = "☢️ MASSIVE Client Nuke",
+    Info = "Creates multiple explosion effects",
+    Interact = 'Activate',
+    Callback = function()
+        local character = Players.LocalPlayer.Character
+        if character then
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                local positions = {
+                    rootPart.Position + Vector3.new(20, 0, 0),
+                    rootPart.Position + Vector3.new(-20, 0, 0),
+                    rootPart.Position + Vector3.new(0, 0, 20),
+                    rootPart.Position + Vector3.new(0, 0, -20),
+                    rootPart.Position + Vector3.new(15, 10, 15),
+                    rootPart.Position + Vector3.new(-15, 10, -15)
+                }
+                
+                for _, pos in ipairs(positions) do
+                    local explosion = Instance.new("Explosion")
+                    explosion.Position = pos
+                    explosion.BlastPressure = 0
+                    explosion.BlastRadius = 30
+                    explosion.Visible = true
+                    explosion.DestroyJointRadiusPercent = 0
+                    explosion.Parent = workspace
+                    task.wait(0.2)
+                end
+            end
+        end
+    end,
+})
+
+local NukeToggle = FunTab:CreateToggle({
+    Name = "Auto-Nuke Mode (Fun)",
+    Info = "Automatically creates random explosions",
+    CurrentValue = false,
+    Flag = "AutoNukeEnabled",
+    Callback = function(Value)
+        if Value then
+            task.spawn(function()
+                while Rayfield.Flags["AutoNukeEnabled"] do
+                    task.wait(math.random(3, 8))
+                    
+                    local character = Players.LocalPlayer.Character
+                    if character then
+                        local rootPart = character:FindFirstChild("HumanoidRootPart")
+                        if rootPart then
+                            local randomPos = rootPart.Position + Vector3.new(
+                                math.random(-25, 25),
+                                math.random(0, 15),
+                                math.random(-25, 25)
+                            )
+                            
+                            local explosion = Instance.new("Explosion")
+                            explosion.Position = randomPos
+                            explosion.BlastPressure = 0
+                            explosion.BlastRadius = math.random(15, 35)
+                            explosion.Visible = true
+                            explosion.DestroyJointRadiusPercent = 0
+                            explosion.Parent = workspace
+                        end
+                    end
+                end
+            end)
+        end
+    end,
+})
+
+local ScreenEffectsSection = FunTab:CreateSection("Screen Effects", false)
+
+local RedAlertToggle = FunTab:CreateToggle({
+    Name = "🚨 Red Alert Mode",
+    Info = "Creates emergency red screen effect",
+    CurrentValue = false,
+    Flag = "RedAlertEnabled",
+    Callback = function(Value)
+        if Value then
+            local screenGui = Instance.new("ScreenGui")
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.BackgroundColor3 = Color3.new(1, 0, 0)
+            frame.BackgroundTransparency = 0.7
+            frame.BorderSizePixel = 0
+            frame.Parent = screenGui
+            screenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+            
+            getgenv().RedAlertGui = screenGui
+        else
+            if getgenv().RedAlertGui then
+                getgenv().RedAlertGui:Destroy()
+                getgenv().RedAlertGui = nil
+            end
+        end
+    end,
+})
+
+local AdditionalFeatures = MainTab:CreateSection("Additional Features", false)
+
+local CrosshairToggle = MainTab:CreateToggle({
+    Name = "Custom Crosshair",
+    Info = "Displays a custom crosshair on screen",
+    CurrentValue = false,
+    Flag = "CrosshairEnabled",
+    Callback = function(Value)
+        if Value then
+            createCustomCrosshair()
+        else
+            removeCustomCrosshair()
+        end
+    end,
+})
+
+local CrosshairColor = MainTab:CreateColorPicker({
+    Name = "Crosshair Color",
+    Info = "Change crosshair color",
+    Color = Color3.fromRGB(255, 0, 0),
+    Flag = "CrosshairColor",
+    Callback = function(Color)
+        updateCrosshairColor(Color)
+    end
+})
+
+RunService.Stepped:Connect(function()
+    if Rayfield.Flags["NoclipEnabled"] then
+        local character = Players.LocalPlayer.Character
+        if character then
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(10)
+        local admins = updateAdminList()
+        if #admins > 0 then
+            AdminListLabel:Set("Admin Team Members: " .. table.concat(admins, ", "))
+        else
+            AdminListLabel:Set("Current Admin Team Members: None")
+        end
+    end
+end)
+
+updateAdminList()
+
+Rayfield:LoadConfiguration()
